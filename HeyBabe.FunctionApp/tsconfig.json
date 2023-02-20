@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "resolveJsonModule": true,               // json imports
+    "esModuleInterop": true,                 // import common modules as ES6 Modules
+    "allowSyntheticDefaultImports": true,    // support typesystem compatibility
+    "module": "commonjs",
+    "target": "es6",
+    "outDir": "dist",
+    "rootDir": ".",
+    "sourceMap": true,
+    "strict": false
+  }
+}
