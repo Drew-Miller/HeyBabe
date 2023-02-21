@@ -6,6 +6,7 @@ export type Message = {
   from: DeviceName;
   title: string;
   body: string;
+  sentDate: Date,
   responseId?: string;
 };
 

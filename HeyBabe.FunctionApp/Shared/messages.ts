@@ -47,6 +47,7 @@ class Messages {
       id: id,
       to: destination.deviceName,
       from: source.deviceName,
+      sentDate: new Date(),
       responseId: null,
       ...message
     };
