@@ -77,7 +77,7 @@ class Registrations {
 
     this.context.log("Read entities.");
 
-    if (!!entities || !!entities.length) {
+    if (!entities || !entities.length) {
       throw `No device found with token ${token}`;
     }
 
@@ -109,7 +109,7 @@ class Registrations {
 
     this.context.log("Read entities.");
 
-    if (!!entities || !!entities.length) {
+    if (!entities || !entities.length) {
       throw `No device found with token ${token}`;
     }
 
