@@ -1,5 +1,5 @@
 import { AzureFunction, Context, HttpRequest } from "@azure/functions";
-import { App, cert, deleteApp, initializeApp, ServiceAccount } from "firebase-admin/app";
+import { App, cert, deleteApp, getApp, initializeApp, ServiceAccount } from "firebase-admin/app";
 import { getMessaging, Message } from "firebase-admin/messaging";
 import { CreateMessage } from "../Shared/message";
 import { Registrations } from "../Shared/registrations";
@@ -29,9 +29,16 @@ const httpTrigger: AzureFunction = async function (
     context.log("Couldn't initialize firebase application.");
     context.log(error);
 
-    context.res = {
-      status: 400,
-      body: JSON.stringify(error)
+    context.log(`Getting ${FIREBASE_APP}  firebase app...`);
+    firebaseApp = getApp();
+    context.log(`${FIREBASE_APP} firebase app found.`);
+
+    if (!firebaseApp) {
+      context.res = {
+        status: 400,
+        body: JSON.stringify(error)
+      }
+      return;
     }
   }
 
@@ -77,6 +84,10 @@ const httpTrigger: AzureFunction = async function (
   } catch(error) {
     context.log("Uh oh!");
     context.log(JSON.stringify(error));
+
+    context.log("Deleting firebaseApp...");
+    deleteApp(firebaseApp);
+    context.log("Firebase App Deleted");
 
     context.res = {
       status: 400,

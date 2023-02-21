@@ -102,6 +102,7 @@ class Registrations {
 
     const entities: TableEntityResult<Registration>[] = []
     for await (const entity of iterator) {
+      this.context.log(JSON.stringify(entity));
       entities.push(entity);
     }
 
@@ -109,8 +110,10 @@ class Registrations {
 
     this.context.log("Read entities.");
 
-    if (!entities || !entities.length) {
-      throw `No device found with token ${token}`;
+    this.context.log(JSON.stringify(entities));
+
+    if (!entities || entities.length == 0) {
+      throw `Could not find other device`;
     }
 
     const registration = entities[0];
