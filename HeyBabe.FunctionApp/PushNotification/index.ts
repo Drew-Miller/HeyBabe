@@ -60,6 +60,24 @@ const httpTrigger: AzureFunction = async function (
         title: dto.title,
         body: dto.body,
       },
+      // APNS settings
+      apns: {
+        headers: {
+          'apns-priority': '10'
+        },
+        payload: {
+          aps: {
+            sound: 'default'
+          }
+        }
+      },
+      // Android settings
+      android: {
+        priority: 'high',
+        notification: {
+          sound: 'default'
+        }
+      }
     };
 
     context.log("Sending message...")
