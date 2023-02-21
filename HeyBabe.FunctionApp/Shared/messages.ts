@@ -61,7 +61,7 @@ class Messages {
   async getMessages(deviceName: string, pageSize: number, pageNumber: number) {
     const options: ListTableEntitiesOptions = {
       queryOptions: {
-        filter: odata`PartitionKey eq ${MESSAGES_PARTITION} and deviceName eq ${deviceName}`
+        filter: odata`PartitionKey eq ${MESSAGES_PARTITION} and to eq ${deviceName}`
       }
     };
 

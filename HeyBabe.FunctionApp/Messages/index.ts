@@ -1,8 +1,9 @@
 import { AzureFunction, Context, HttpRequest } from "@azure/functions"
 import { Messages } from "../Shared/messages";
+import { DeviceName } from "../Shared/registration";
 
 type PageQuery = {
-    token: string,
+    deviceName: DeviceName,
     pageSize: number,
     pageNumber: number
 };
@@ -16,11 +17,11 @@ const httpTrigger: AzureFunction = async function (
     const dto = !!req.body ?
         req.body as PageQuery :
         {
-            token: req.query.token,
+            deviceName: req.query.deviceName,
             pageSize: !!req.query.pageSize ? Number(req.query.pageSize) : 5,
             pageNumber: !!req.query.pageNumber ? Number(req.query.pageNumber) : 0
         } as PageQuery;
-
+    
     if (isNaN(dto.pageSize) || isNaN(dto.pageNumber)) {
         context.res = {
             status: 400,
@@ -34,7 +35,7 @@ const httpTrigger: AzureFunction = async function (
       
         context.log("Finding messages...");
     
-        const results = await messages.getMessages(dto.token, dto.pageSize, dto.pageNumber);
+        const results = await messages.getMessages(dto.deviceName, dto.pageSize, dto.pageNumber);
       
         context.log("Messages found.");
 
