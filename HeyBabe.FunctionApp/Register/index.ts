@@ -1,10 +1,6 @@
 import { AzureFunction, Context, HttpRequest } from "@azure/functions";
+import { CreateRegistration } from "../Shared/registration";
 import { Registrations } from "../Shared/registrations";
-
-type RegisterDto = {
-  token: string;
-  deviceName: string;
-};
 
 const httpTrigger: AzureFunction = async function (
   context: Context,
@@ -13,16 +9,16 @@ const httpTrigger: AzureFunction = async function (
   context.log(`Request Method: ${req.method}`);
   context.log(`Request Body: ${JSON.stringify(req.body)}`);
 
-  const dto = req.body as RegisterDto;
+  const dto = req.body as CreateRegistration;
 
   try {
     const registrations = await Registrations.initialize(context);
   
     context.log("Registering user...");
 
-    const result = await registrations.register({ ...dto, registrationDate: new Date() });
+    const result = await registrations.register(dto);
 
-    const registration = await registrations.findToken(dto.token);
+    const registration = await registrations.getDevice(dto.token);
     
     context.res = {
       // status: 200, /* Defaults to 200 */

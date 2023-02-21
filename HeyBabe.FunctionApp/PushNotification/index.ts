@@ -1,15 +1,11 @@
 import { AzureFunction, Context, HttpRequest } from "@azure/functions";
 import { App, cert, deleteApp, initializeApp, ServiceAccount } from "firebase-admin/app";
 import { getMessaging, Message } from "firebase-admin/messaging";
+import { CreateMessage } from "../Shared/message";
 import { Registrations } from "../Shared/registrations";
+import { Messages } from "../Shared/messages";
 import * as jsonKey from "../heybabe-firebase.secret.json";
 const { FIREBASE_APP } = process.env;
-
-type PushNotificationDto = {
-  token: string;
-  title: string;
-  body: string;
-};
 
 const httpTrigger: AzureFunction = async function (
   context: Context,
@@ -18,13 +14,17 @@ const httpTrigger: AzureFunction = async function (
   context.log(`Request Method: ${req.method}`);
   context.log(`Request Body: ${JSON.stringify(req.body)}`);
 
-  const dto = req.body as PushNotificationDto;
+  const dto = req.body as CreateMessage;
 
   let firebaseApp: App;
   try{
+    context.log("Initializing the firebase app...");
+
     firebaseApp = initializeApp({
       credential: cert(jsonKey as ServiceAccount)
     }, FIREBASE_APP);
+
+    context.log("Firebase initialized.");
   } catch(error) {
     context.log("Couldn't initialize firebase application.");
     context.log(error);
@@ -36,16 +36,14 @@ const httpTrigger: AzureFunction = async function (
   }
 
   try {
-
-    context.log("Initializing the firebase app...");
-
-    context.log("Firebase initialized.");
-
-    const registrations = await Registrations.initialize(context);
+    const [ registrations, messages ] = await Promise.all([
+      Registrations.initialize(context),
+      Messages.initialize(context)
+    ]);
   
     context.log("Finding device...");
 
-    const destination = await registrations.findOtherDeviceName(dto.token);
+    const destination = await registrations.getDestinationDevice(dto.token);
   
     context.log(JSON.stringify(destination));
 
@@ -59,16 +57,22 @@ const httpTrigger: AzureFunction = async function (
 
     context.log("Sending message...")
   
-    const response = await getMessaging(firebaseApp).send(payload);
-
-    context.log(response);
+    const [entity, firebaseResponse ] = await Promise.all([
+      messages.createMessage(dto),
+      getMessaging(firebaseApp).send(payload)
+    ]);
+    
+    context.log(JSON.stringify(entity));
+    context.log(firebaseResponse);
 
     context.log("Destroying firebase app...");
 
     deleteApp(firebaseApp);
+
+    context.log("Firebase app destroyed.");
   
     context.res = {
-      body: response
+      body: firebaseResponse
     };
   } catch(error) {
     context.log("Uh oh!");

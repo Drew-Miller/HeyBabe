@@ -1,7 +1,7 @@
 import { ListTableEntitiesOptions, odata, TableClient, TableEntity, TableEntityResult } from "@azure/data-tables";
 import { Context } from "@azure/functions";
 import { getDbClient } from "./db";
-import { Registration } from "./registration";
+import { CreateRegistration, Registration } from "./registration";
 const { REGISTRATIONS_PARTITION } = process.env;
 
 class Registrations {
@@ -19,30 +19,17 @@ class Registrations {
 
   private constructor(private client: TableClient, private context: Context) {}
 
-  async updateRegistration(registration: Registration) {
+  async upsertRegistration(registration: CreateRegistration) {
     const entity: TableEntity<Registration> = {
       partitionKey: REGISTRATIONS_PARTITION,
       rowKey: registration.deviceName,
+      registrationDate: new Date(),
       ...registration
     };
 
     this.context.log("Upserting entity...");
     const result = await this.client.upsertEntity(entity, "Replace");
     this.context.log("Upserted entity.");
-
-    return result;
-  }
-  
-  async createRegistration(registration: Registration) {
-    const entity: TableEntity<Registration> = {
-      partitionKey: REGISTRATIONS_PARTITION,
-      rowKey: registration.deviceName,
-      ...registration
-    };
-
-    this.context.log("Creating entity...");
-    const result = await this.client.createEntity(entity);
-    this.context.log("Created entity.");
 
     return result;
   }
@@ -65,16 +52,11 @@ class Registrations {
     return registrations;
   }
 
-  register(registration: Registration) {
-    const existing = this.findDeviceName(registration.deviceName);
-    if (existing) {
-      return this.updateRegistration(registration);
-    }
-
-    return this.createRegistration(registration);
+  register(registration: CreateRegistration) {
+    return this.upsertRegistration(registration);
   }
   
-  async findToken(token: string): Promise<Registration> {
+  async getDevice(token: string): Promise<Registration> {
     const options: ListTableEntitiesOptions = {
       queryOptions: {
         filter: odata`PartitionKey eq ${REGISTRATIONS_PARTITION} and token eq ${token}`
@@ -95,45 +77,21 @@ class Registrations {
 
     this.context.log("Read entities.");
 
-    const registration = entities && entities.length > 0 ? entities[0] : undefined;
+    if (!!entities || !!entities.length) {
+      throw `No device found with token ${token}`;
+    }
+
+    const registration = entities[0];
 
     this.context.log(JSON.stringify(registration));
 
     return registration;
   }
 
-  async findDeviceName(deviceName: string): Promise<Registration> {
+  async getDestinationDevice(token: string): Promise<Registration> {
     const options: ListTableEntitiesOptions = {
       queryOptions: {
-        filter: odata`PartitionKey eq ${REGISTRATIONS_PARTITION} and deviceName eq ${deviceName}`
-      }
-    }
-
-    this.context.log("Finding device...");
-    const iterator = await this.client.listEntities<Registration>(options);
-
-    this.context.log("Reading entities...");
-
-    const entities: TableEntityResult<Registration>[] = []
-    for await (const entity of iterator) {
-      entities.push(entity);
-    }
-
-    await Promise.all(entities);
-
-    this.context.log("Read entities.");
-
-    const registration = entities && entities.length > 0 ? entities[0] : undefined;
-
-    this.context.log(JSON.stringify(registration));
-
-    return registration;
-  }
-
-  async findOtherDeviceName(deviceName: string): Promise<Registration> {
-    const options: ListTableEntitiesOptions = {
-      queryOptions: {
-        filter: odata`PartitionKey eq ${REGISTRATIONS_PARTITION} and deviceName ne ${deviceName}`
+        filter: odata`PartitionKey eq ${REGISTRATIONS_PARTITION} and token ne ${token}`
       }
     };
 
@@ -151,20 +109,15 @@ class Registrations {
 
     this.context.log("Read entities.");
 
-    const registration = entities && entities.length > 0 ? entities[0] : undefined;
+    if (!!entities || !!entities.length) {
+      throw `No device found with token ${token}`;
+    }
+
+    const registration = entities[0];
 
     this.context.log(JSON.stringify(registration));
 
     return registration;
-  }
-
-  async getDestination(token: string): Promise<Registration> {
-    const source = await this.findToken(token);
-    if (!source) {
-      throw "Current device is not registered";
-    }
-
-    return this.findOtherDeviceName(source.deviceName);
   }
 }
 
